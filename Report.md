@@ -2,78 +2,80 @@
 
 ## Introduction
 
-The 3D Image Composer project explores the intersection of computer vision, image processing, and human perception through the creation of a tool that generates three-dimensional visual experiences. The main objectives of this lab were to:
+The 3D Image Composer project sits at the intersection of computer vision, image processing, and human perception. By creating a tool that generates three-dimensional visual experiences, this project explores how we can manipulate images to create realistic depth perception. The main goals of this lab were to:
 
-1. Extract a person from an image using semantic segmentation techniques
-2. Insert the segmented person into stereoscopic background images
-3. Manipulate the perceived depth of the inserted person
-4. Convert the resulting stereoscopic pairs into anaglyph images viewable with red-cyan glasses
-5. Create an interactive application that allows users to generate their own 3D compositions
+1. Extract people from images using semantic segmentation
+2. Place the segmented people into stereoscopic background images
+3. Control the perceived depth of the inserted people
+4. Generate anaglyph images viewable with red-cyan glasses
+5. Build an intuitive application that lets users create their own 3D compositions
 
-This project successfully accomplished all these objectives, resulting in a functional, user-friendly application that demonstrates core principles of stereoscopic image processing and depth perception.
+I'm happy to report that all objectives were successfully achieved, resulting in a functional application that demonstrates fundamental principles of stereoscopic image processing while remaining accessible to users without technical expertise.
 
 ## Methodology
 
 ### Image Segmentation
 
-For the segmentation of people from images, I implemented a solution using DeepLabV3, a deep learning model for semantic segmentation:
+For extracting people from images, I implemented a solution using DeepLabV3:
 
-1. **Model Selection**: I utilized DeepLabV3 with a ResNet50 backbone pre-trained on the COCO dataset with VOC annotations. This model was chosen for its excellent performance in person segmentation tasks and its ability to accurately detect human figures in varied poses and lighting conditions.
+1. **Model Selection**: I chose DeepLabV3 with a ResNet50 backbone pre-trained on the COCO dataset. This model performs exceptionally well at person segmentation across various poses, clothing types, and lighting conditions.
 
-2. **Implementation**: The segmentation process was implemented in the `segment_person` function in the `segmentation.py` module. The function performs the following steps:
-   - Loads and preprocesses the input image
-   - Passes the image through the DeepLabV3 model
-   - Extracts the person mask from the segmentation results (class ID 15 in COCO)
-   - Applies morphological operations to clean up the mask
-   - Creates a 4-channel RGBA image with transparency where no person is detected
+2. **Implementation**: The segmentation process in the `segment_person` function:
+   - Preprocesses the input image
+   - Passes it through the DeepLabV3 model
+   - Extracts the person mask (class ID 15 in COCO)
+   - Applies morphological operations to clean the mask
+   - Creates an RGBA image with transparency where no person is detected
 
-3. **Mask Refinement**: To improve the quality of the segmentation, I applied morphological operations (closing and opening) with a 5×5 kernel to remove small holes and noise from the mask.
+3. **Mask Refinement**: I applied closing and opening operations with a 5×5 kernel to remove small holes and noise from the mask without sacrificing edge detail.
 
 ### Stereoscopic Image Processing
 
-To incorporate the segmented person into stereoscopic images:
+To incorporate segmented people into stereoscopic images:
 
-1. **Stereo Pair Handling**: I developed the `load_stereo_pair` function in the `stereo_processing.py` module to split side-by-side stereoscopic images into separate left and right views.
+1. **Stereo Pair Handling**: The `load_stereo_pair` function splits side-by-side stereoscopic images into separate left and right views.
 
-2. **Person Insertion with Depth**: The core algorithm for adding the person to the stereoscopic images is in the `insert_person_with_depth` function, which:
-   - Resizes the person to a proportionate size relative to the background (approximately 2/3 of background height)
-   - Calculates the appropriate horizontal displacement (disparity) based on the desired depth level
-   - Positions the person in both left and right images with corresponding offsets
+2. **Person Insertion with Depth**: The core algorithm in `insert_person_with_depth`:
+   - Resizes the person proportionally to the background
+   - Calculates horizontal displacement (disparity) based on desired depth
+   - Positions the person in both left and right images with appropriate offsets
    - Blends the person into the background using alpha compositing
 
-3. **Depth Level Configuration**: I implemented three distinct depth levels:
-   - **Close**: Large disparity (40 pixels) to create the illusion that the person is near the viewer
-   - **Medium**: Moderate disparity (20 pixels) for a balanced depth effect
-   - **Far**: Small disparity (5 pixels) to position the person deeper in the scene
+3. **Depth Configuration**: I implemented three distinct depth levels:
+   - **Close**: Large disparity (40 pixels) creates a pop-out effect
+   - **Medium**: Moderate disparity (20 pixels) for balanced depth
+   - **Far**: Small disparity (5 pixels) positions the person deeper in the scene
 
-This approach ensures that the depth effect is convincing while maintaining a comfortable viewing experience without excessive parallax that could cause eye strain.
+This approach creates a convincing depth effect while maintaining comfortable viewing without excessive eye strain.
 
 ### Anaglyph Creation
 
-The conversion of stereoscopic pairs into anaglyph images was implemented in the `create_anaglyph` function in the `anaglyph.py` module:
+The conversion to anaglyph format happens in the `create_anaglyph` function:
 
-1. **Channel Extraction and Combination**: The function extracts the red channel from the left image and the green and blue channels from the right image.
+1. **Channel Extraction**: The function extracts the red channel from the left image and the green and blue channels from the right image.
 
-2. **Color Space Handling**: The implementation carefully manages color space conversions between BGR (OpenCV default) and RGB to ensure correct channel mapping.
+2. **Color Space Management**: The implementation carefully handles color space conversions between BGR and RGB to ensure correct channel mapping.
 
-3. **Output Format**: The final anaglyph is returned in BGR format for compatibility with OpenCV functions, ready for display or saving.
+3. **Output Format**: The final anaglyph is returned in BGR format for compatibility with OpenCV functions.
 
 ### Gradio Application Development
 
-The interactive application was developed using Gradio, focusing on usability and a streamlined workflow:
+The interactive application uses Gradio with a focus on usability:
 
-1. **Interface Design**: The interface was designed with a single-page layout that displays inputs on the left and results on the right, making the process intuitive and reducing cognitive load.
+1. **Interface Design**: I created a single-page layout with inputs on the left and results on the right, making the workflow intuitive and reducing cognitive load.
 
 2. **User Input Options**: The app allows users to:
-   - Upload their own person images or select from provided samples
+   - Upload their own person images or select from samples
    - Upload their own stereoscopic backgrounds or select from samples
-   - Choose the depth level for the person (close, medium, far)
+   - Choose the depth level (close, medium, far)
+   - Adjust position and size of the person in the scene
+   - Toggle color adaptation between person and background
 
-3. **Output Display**: Results are shown in real-time, including:
+3. **Output Display**: Results appear in real-time, showing:
    - The segmented person with transparency
-   - The final anaglyph image viewable with red-cyan glasses
+   - The final anaglyph image for viewing with red-cyan glasses
 
-4. **Error Handling**: The application includes comprehensive error checking and user feedback to guide users through the process.
+4. **Error Handling**: Comprehensive error checking provides friendly feedback to guide users through the process.
 
 ## Results
 [Gradio Link](https://huggingface.co/spaces/zanegu/3D-Image-Composer)
@@ -82,11 +84,11 @@ The interactive application was developed using Gradio, focusing on usability an
     <figcaption>Gradio interface</figcaption>
 </figure>
 
-The 3D Image Composer successfully achieves the goal of creating convincing 3D images by combining segmented people with stereoscopic backgrounds. The key results include:
+The 3D Image Composer successfully creates convincing 3D images by combining segmented people with stereoscopic backgrounds:
 
 ### Segmentation Results
 
-The DeepLabV3 model produces clean segmentations of people from various images, effectively removing backgrounds while preserving details like hair and clothing edges. The morphological operations successfully eliminate small artifacts without degrading the overall quality of the segmentation.
+The DeepLabV3 model produces clean segmentations, effectively removing backgrounds while preserving details like hair and clothing edges. The morphological operations successfully eliminate small artifacts without degrading segmentation quality.
 
 ### Depth Manipulation
 
@@ -98,23 +100,24 @@ The DeepLabV3 model produces clean segmentations of people from various images, 
     <img src="./output/far.jpg" alt="Far option" width="400">
     <figcaption>Far option</figcaption>
 </figure>
-The three depth levels (close, medium, far) effectively create different perceptions of depth when viewed with red-cyan glasses. When tested with various subjects and backgrounds:
+
+The three depth levels create distinctly different perceptions when viewed with red-cyan glasses:
 
 - **Close**: Creates a dramatic pop-out effect where the person appears to be in front of the screen
-- **Medium**: Places the person at a natural middle ground depth that integrates well with most scenes
+- **Medium**: Places the person at a natural middle-ground depth that integrates well with most scenes
 - **Far**: Situates the person deeper in the scene, making them appear part of the background environment
 
 ### Anaglyph Quality
 
-The anaglyph images display proper color separation and depth when viewed with red-cyan glasses. The channel combination method provides a good balance between depth perception and color representation, though some color distortion is unavoidable due to the nature of anaglyph imaging.
+The anaglyph images display proper color separation and depth when viewed with red-cyan glasses. The channel combination method balances depth perception and color representation, though some color distortion is unavoidable due to the nature of anaglyph imaging.
 
 ### User Interface
 
-The single-page layout of the Gradio app provides a streamlined experience:
-- The side-by-side arrangement of inputs and outputs allows users to easily see the relationship between their selections and the results
-- The sample galleries make it easy for users to experiment without needing to upload their own images
-- Clear section headings and visual organization guide users through the process
-- Status messages provide clear feedback on the processing state and any potential errors
+The app's layout provides a streamlined experience with:
+- Side-by-side arrangement of inputs and outputs
+- Sample galleries for quick experimentation
+- Clear section headings and visual organization
+- Status messages providing feedback on processing and potential errors
 
 ## Discussion
 
@@ -124,36 +127,36 @@ The single-page layout of the Gradio app provides a streamlined experience:
 
 **Challenge**: Initial segmentation results sometimes included parts of the background or missed fine details like hair or fingers.
 
-**Solution**: I implemented morphological operations to clean up the mask and experimented with different kernel sizes to find the optimal balance between noise removal and detail preservation. For future improvements, more advanced post-processing like conditional random fields or boundary refinement could further enhance segmentation quality.
+**Solution**: Implementing morphological operations with carefully tuned kernel sizes helped find the optimal balance between noise removal and detail preservation. For future improvements, more advanced techniques like conditional random fields could further enhance segmentation quality.
 
 #### 2. Depth Perception Tuning
 
-**Challenge**: Finding the appropriate disparity values for each depth level required careful tuning to avoid eye strain while maintaining a convincing depth effect.
+**Challenge**: Finding appropriate disparity values required careful tuning to avoid eye strain while maintaining convincing depth effects.
 
-**Solution**: Through iterative testing with different disparity values, I determined the current settings (5, 20, and 40 pixels) provide a good balance. The values were calibrated to work well with the typical viewing distance of a computer screen.
+**Solution**: Through iterative testing, I determined that the current settings (5, 20, and 40 pixels) provide a good balance for typical viewing distances of a computer screen.
 
-#### 3. Gradio Compatibility
+#### 3. User Interface Design
 
-**Challenge**: The initial interface design used newer Gradio features that weren't compatible with the installed version.
+**Challenge**: Creating an intuitive interface that non-technical users could navigate without confusion was more difficult than anticipated.
 
-**Solution**: I redesigned the interface to use more basic components that work across different Gradio versions while maintaining a user-friendly experience. This included using individual image components with buttons instead of interactive galleries and simplifying the tab navigation.
+**Solution**: I focused on a step-by-step approach with clear visual guidance, sample images for immediate testing, and informative feedback messages. User testing helped identify pain points in the workflow that weren't obvious during development, leading to improved layout and clearer instructions.
 
+#### 4. Color Adaptation
 
+**Challenge**: People extracted from one image often looked unnatural when placed into backgrounds with different lighting conditions.
+
+**Solution**: I implemented an optional color adaptation feature that analyzes and matches lighting conditions between the person and background, helping create more natural-looking compositions.
 
 ## Conclusion
 
-The 3D Image Composer successfully demonstrates the principles of image segmentation, stereoscopic imaging, and anaglyph creation. The application provides an accessible way for users to experiment with 3D image composition without requiring specialized equipment beyond red-cyan glasses.
-
-The project illustrates how deep learning techniques can be combined with traditional image processing methods to create interactive applications with practical visual effects. The modular design of the codebase also allows for future expansion and improvements.
+The app demonstrates image segmentation, stereoscopic imaging, and anaglyph creation principles, it also provides an accessible way for users to experiment with 3D image composition requiring only red-cyan glasses.
 
 ### Future Work
 
-Several potential enhancements could be explored in future iterations:
+Several promising enhancements could be explored:
 
-1. **Real-time Depth Adjustment**: Implementing a slider for continuous depth adjustment rather than discrete levels.
+1. **Multiple Object Insertion**: Extending the application to support multiple segmented objects at different depths would create more complex and interesting scenes. This would require developing a layering system to manage object overlap and relative positioning.
 
-2. **Multiple Object Insertion**: Extending the application to support multiple segmented objects at different depths.
+2. **Advanced Background Adaptation**: Enhancing the color correction to better match lighting and shadows between the person and background would further improve realism.
 
-3. **Background Adaptation**: Adding automatic color correction to better match the lighting conditions between the person and background.
-
-The 3D Image Composer demonstrates that creating compelling 3D visual experiences is achievable with modern computer vision tools and thoughtful interface design. The project provides both technical insights into image processing techniques and a practical application that makes these complex concepts accessible to users.
+3. **Dynamic Pose Adaptation**: Developing capability to adjust the person's pose to better match the scene perspective would create more natural compositions.

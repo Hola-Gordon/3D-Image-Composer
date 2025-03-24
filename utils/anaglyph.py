@@ -1,7 +1,3 @@
-"""
-Anaglyph creation functions for 3D image viewing with red-cyan glasses.
-"""
-
 import cv2
 import numpy as np
 
