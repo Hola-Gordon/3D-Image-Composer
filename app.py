@@ -1,8 +1,3 @@
-"""
-3D Image Composer - Simplified Single-Page Layout
-Compatible with older Gradio versions
-"""
-
 import os
 import cv2
 import numpy as np
@@ -13,7 +8,7 @@ import glob
 
 # Import our utility modules
 from utils.segmentation import load_segmentation_model, segment_person
-from utils.stereo_processing import load_stereo_pair, insert_person_with_depth
+from utils.stereo_processing import load_stereo_pair, insert_person_with_depth_position
 from utils.anaglyph import create_anaglyph
 
 # Sample data paths
@@ -40,8 +35,8 @@ def get_sample_images():
     
     return person_samples, stereo_samples
 
-# Process images function
-def process_images(person_image, stereo_image, depth_level):
+# Process images function with position control
+def process_images(person_image, stereo_image, depth_level, x_position, y_position, scale_factor):
     # Make sure we have both inputs
     if person_image is None:
         return None, None, "Please select a person image."
@@ -88,9 +83,9 @@ def process_images(person_image, stereo_image, depth_level):
         # Step 2: Load and process the stereoscopic image
         left_bg, right_bg = load_stereo_pair(stereo_path)
         
-        # Step 3: Insert the person into both images with the specified depth
-        left_composite, right_composite = insert_person_with_depth(
-            left_bg, right_bg, segmented_person, depth_level
+        # Step 3: Insert the person into both images with the specified depth and position
+        left_composite, right_composite = insert_person_with_depth_position(
+            left_bg, right_bg, segmented_person, depth_level, x_position, y_position, scale_factor
         )
         
         # Step 4: Create the anaglyph image
@@ -105,7 +100,7 @@ def process_images(person_image, stereo_image, depth_level):
     except Exception as e:
         return None, None, f"Error: {str(e)}"
 
-# Create the Gradio interface with simplified layout
+# Create the Gradio interface with reorganized layout
 def create_interface():
     person_samples, stereo_samples = get_sample_images()
     
@@ -121,116 +116,144 @@ def create_interface():
         selected_person = gr.State(None)
         selected_stereo = gr.State(None)
         
-        # Main sections in a single-page layout
+        # Image selection row - Person and Background side by side
+        gr.Markdown("## 📸 Select Your Images")
+        
         with gr.Row():
-            # Left side: Image selection panel
+            # Person image section
+            with gr.Column():
+                gr.Markdown("### 🧍 Person Image")
+                
+                # Person image display
+                selected_person_img = gr.Image(
+                    label="Selected Person",
+                    elem_id="selected_person",
+                    height=200
+                )
+                
+                # Upload button
+                custom_person = gr.Image(
+                    type="filepath", 
+                    label="Upload a Person Image", 
+                    elem_id="person_upload"
+                )
+                
+                # Sample person images
+                gr.Markdown("#### Or choose from samples:")
+                
+                # Show sample images in a compact grid
+                with gr.Row():
+                    for i, path in enumerate(person_samples[:4]):
+                        with gr.Column(scale=1, min_width=80):
+                            sample_img = gr.Image(value=path, show_label=False, height=80)
+                            sample_btn = gr.Button("Select")
+                            
+                            # Create a function to handle selection
+                            def make_select_fn(path):
+                                return lambda: (path, path)
+                            
+                            sample_btn.click(
+                                fn=make_select_fn(path),
+                                outputs=[selected_person_img, selected_person]
+                            )
+            
+            # Stereo image section
+            with gr.Column():
+                gr.Markdown("### 🌄 Stereoscopic Background")
+                
+                # Stereo image display
+                selected_stereo_img = gr.Image(
+                    label="Selected Background",
+                    elem_id="selected_stereo",
+                    height=200
+                )
+                
+                # Upload button
+                custom_stereo = gr.Image(
+                    type="filepath", 
+                    label="Upload a Stereoscopic Background", 
+                    elem_id="stereo_upload"
+                )
+                
+                # Sample stereo images
+                gr.Markdown("#### Or choose from samples:")
+                
+                # Show sample images in a compact grid
+                with gr.Row():
+                    for i, path in enumerate(stereo_samples[:4]):
+                        with gr.Column(scale=1, min_width=80):
+                            sample_img = gr.Image(value=path, show_label=False, height=80)
+                            sample_btn = gr.Button("Select")
+                            
+                            def make_select_fn(path):
+                                return lambda: (path, path)
+                            
+                            sample_btn.click(
+                                fn=make_select_fn(path),
+                                outputs=[selected_stereo_img, selected_stereo]
+                            )
+        
+        # Controls and Results section
+        with gr.Row():
+            # Controls column
             with gr.Column(scale=1):
-                gr.Markdown("## 📸 Select Your Images")
+                gr.Markdown("## 🎛️ Controls")
                 
-                # Person image section
+                # Position and Depth Controls
                 with gr.Group():
-                    gr.Markdown("### 🧍 Person Image")
+                    gr.Markdown("### Position and Depth Settings")
                     
-                    # Person image display
-                    selected_person_img = gr.Image(
-                        label="Selected Person",
-                        elem_id="selected_person",
-                        height=250
-                    )
-                    
-                    # Upload button
-                    custom_person = gr.Image(
-                        type="filepath", 
-                        label="Upload a Person Image", 
-                        elem_id="person_upload"
-                    )
-                    
-                    # Sample person images
-                    gr.Markdown("#### Or choose from samples:")
-                    
-                    # Use a single row with scrolling for better space usage
-                    with gr.Row():
-                        # Show just the first few samples to save space
-                        for i, path in enumerate(person_samples[:4]):
-                            with gr.Column(scale=1, min_width=100):
-                                sample_img = gr.Image(value=path, show_label=False, height=100)
-                                sample_btn = gr.Button("Select")
-                                
-                                # Create a function to handle selection
-                                def make_select_fn(path):
-                                    return lambda: (path, path)
-                                
-                                sample_btn.click(
-                                    fn=make_select_fn(path),
-                                    outputs=[selected_person_img, selected_person]
-                                )
-                
-                # Stereo image section
-                with gr.Group():
-                    gr.Markdown("### 🌄 Stereoscopic Background")
-                    
-                    # Stereo image display
-                    selected_stereo_img = gr.Image(
-                        label="Selected Background",
-                        elem_id="selected_stereo",
-                        height=250
-                    )
-                    
-                    # Upload button
-                    custom_stereo = gr.Image(
-                        type="filepath", 
-                        label="Upload a Stereoscopic Background", 
-                        elem_id="stereo_upload"
-                    )
-                    
-                    # Sample stereo images
-                    gr.Markdown("#### Or choose from samples:")
-                    
-                    # Use a single row with scrolling for better space usage
-                    with gr.Row():
-                        # Show just the first few samples to save space
-                        for i, path in enumerate(stereo_samples[:4]):
-                            with gr.Column(scale=1, min_width=100):
-                                sample_img = gr.Image(value=path, show_label=False, height=100)
-                                sample_btn = gr.Button("Select")
-                                
-                                def make_select_fn(path):
-                                    return lambda: (path, path)
-                                
-                                sample_btn.click(
-                                    fn=make_select_fn(path),
-                                    outputs=[selected_stereo_img, selected_stereo]
-                                )
-                
-                # Depth settings section
-                with gr.Group():
-                    gr.Markdown("### 🎛️ Depth Settings")
+                    # Depth selector
                     depth_selector = gr.Radio(
                         choices=["close", "medium", "far"],
                         value="medium",
-                        label="Person's Position in 3D Space",
+                        label="Person's Depth in 3D Space",
                         info="How far the person appears in the 3D scene"
                     )
                     
-                    gr.Markdown("""
-                    * **Close**: Person appears very close to viewer
-                    * **Medium**: Person appears at a moderate distance
-                    * **Far**: Person appears in the background
-                    """)
+                    # Horizontal position slider
+                    x_position = gr.Slider(
+                        minimum=0, 
+                        maximum=100, 
+                        value=50, 
+                        step=1, 
+                        label="Horizontal Position (%)",
+                        info="Move the person left to right"
+                    )
+                    
+                    # Vertical position slider
+                    y_position = gr.Slider(
+                        minimum=0, 
+                        maximum=100, 
+                        value=75, 
+                        step=1, 
+                        label="Vertical Position (%)",
+                        info="Move the person up and down"
+                    )
+                    
+                    # Scale slider
+                    scale_slider = gr.Slider(
+                        minimum=0.5, 
+                        maximum=3.0, 
+                        value=1, 
+                        step=0.01, 
+                        label="Size Scale",
+                        info="Adjust the size of the person"
+                    )
                 
                 # Create button
                 process_btn = gr.Button("🔮 Generate 3D Image", variant="primary", size="lg")
-            
-            # Right side: Results panel
-            with gr.Column(scale=1):
-                gr.Markdown("## 🖼️ Results")
-                
-                # Status message
-                status_msg = gr.Markdown("### Select images and click Generate to create your 3D image")
                 
                 # Segmented person output
                 gr.Markdown("### Segmented Person")
-                segmented_output = gr.Image(label="", height=250)
+                segmented_output = gr.Image(label="", height=200)
+            
+            # Results column
+            with gr.Column(scale=1):
+                gr.Markdown("## 🖼️ 3D Result")
+                
+                # Status message
+                status_msg = gr.Markdown("### Select images and click Generate to create your 3D image")
                 
                 # Final anaglyph output
                 gr.Markdown("### 🥽 3D Anaglyph Image")
@@ -250,11 +273,10 @@ def create_interface():
             gr.Markdown("""
             ## How to use this app:
             
-            1. Select or upload a person image on the left panel
-            2. Select or upload a stereoscopic background image
-            3. Choose how far the person should appear in the 3D scene
-            4. Click "Generate 3D Image"
-            5. View the resulting 3D anaglyph with red-cyan glasses
+            1. Select or upload a person image and stereoscopic background 
+            2. Adjust the position, depth, and size controls
+            3. Click "Generate 3D Image"
+            4. View the 3D anaglyph with red-cyan glasses
             
             ## What is a stereoscopic image?
             
@@ -282,7 +304,7 @@ def create_interface():
         )
         
         # Processing function with status updates
-        def process_with_status(person_path, stereo_path, depth):
+        def process_with_status(person_path, stereo_path, depth, x_pos, y_pos, scale):
             # Input validation
             if person_path is None:
                 return None, None, "⚠️ Please select a person image first."
@@ -290,7 +312,7 @@ def create_interface():
                 return None, None, "⚠️ Please select a stereoscopic background image first."
             
             # Process images
-            segmented, anaglyph, error = process_images(person_path, stereo_path, depth)
+            segmented, anaglyph, error = process_images(person_path, stereo_path, depth, x_pos, y_pos, scale)
             
             if error:
                 return None, None, f"❌ {error}"
@@ -300,7 +322,7 @@ def create_interface():
         # Connect the processing button
         process_btn.click(
             fn=process_with_status,
-            inputs=[selected_person, selected_stereo, depth_selector],
+            inputs=[selected_person, selected_stereo, depth_selector, x_position, y_position, scale_slider],
             outputs=[segmented_output, anaglyph_output, status_msg]
         )
     

@@ -1,8 +1,3 @@
-"""
-Image segmentation module for extracting a person from an image.
-Uses DeepLabV3 pre-trained model for semantic segmentation.
-"""
-
 import cv2
 import numpy as np
 import torch
